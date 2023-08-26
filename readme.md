@@ -2,7 +2,7 @@
 
 专业现代化的 electron asar文件更新。目前只支持Windows，Mac todo
 
-优点：Windows golang写的 updater.exe，不需要安装任何的runtime
+优点：Windows golang写的 updater.exe，不需要安装任何的runtime，支持管理员提权和自动降权
 
 安装
 ```
@@ -31,16 +31,16 @@ let canUpdate;
 try {
     canUpdate =  await updater.check();
 } catch (error) {
-    dialog.showErrorBox('info', '检查更新失败');
     console.log(error);
+    dialog.showErrorBox('info', '检查更新失败');
 }
 try {
     if(canUpdate){
         await updater.update();
     }
 } catch (error) {
-    dialog.showErrorBox('info', '更新失败');
     console.log(error);
+    dialog.showErrorBox('info', '更新失败');
 }
 ```
 
@@ -65,7 +65,7 @@ options = {
         body: {},  //服务端可根据这个参数，返回不同的response json
         method: 'POST|GET', //default POST
     },
-    adminRun: false, //default false，是否以管理员身份运行updater.exe
+    adminRun: false, //true：管理员身份运行updater.exe；false：自动。default false。
     debug: false,
 };
 const updater = new Updater(options);

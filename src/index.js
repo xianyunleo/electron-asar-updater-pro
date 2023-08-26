@@ -1,3 +1,4 @@
+const {app} = require('electron');
 const fs = require("fs");
 const path = require("path");
 const child_process = require("child_process");
@@ -18,11 +19,6 @@ const Updater = class Updater extends EventEmitter {
         },
         adminRun: false,
         debug: false,
-        test: {
-            enable: false,
-            appVersion: '',
-            exePath: '',
-        },
     };
     _updateFileName = 'update.asar';
     _resourcesDirName = 'resources';
@@ -188,37 +184,62 @@ const Updater = class Updater extends EventEmitter {
         } catch (error) {
             throw new Error('Copy updater.exe Error');
         }
-        const options = {
-            cwd: this.getAppDir(),
-            shell: this._options?.debug,   //控制窗口是否显示
-            detached: true,
-            stdio: 'ignore',
-        };
         const updateAsarPath = path.join(this._downloadDir, 'update.asar');
         const appAsarPath = path.join(this._downloadDir, 'app.asar');
-        const appIsAdmin = (await isAdmin()) ? 1 : 0;
-        const adminRun = this._options?.adminRun ? 1 : 0;
-        const args = [updateAsarPath, appAsarPath, this.getExePath(), appIsAdmin, adminRun];
-        try {
-            this._log(`Update start shell process,args:"${updaterPath};${args.join(';')}"`);
-            const childProcess = child_process.spawn(updaterPath, args, options);
-            await new Promise((resolve, reject) => {
-                // 新增于: v15.1.0
-                // childProcess.on('spawn', () => {
-                //     resolve();
-                // });
-                function checkPid() {
-                    if (childProcess.pid) {
-                        clearInterval(intervalId);
-                        resolve();
-                    }
-                }
-                const intervalId = setInterval(checkPid, 100);
-                childProcess.on('error', (error) => {
-                    clearInterval(intervalId);
-                    reject(error);
-                });
+        const exePath = this.getExePath();
+        //是否需要以管理员身份运行updater.exe。如果程序本事就是管理员身份运行的，那么updater.exe会继承权限，不需要再提权运行。
+        const needAdminRun = !(await isAdmin()) && this._options?.adminRun ? 1 : 0;
 
+        let shell, command, args;
+        if (needAdminRun) {
+            shell = 'powershell';
+            command = `Start-Process`;
+            const updateAsarPathArg = this._getArg(updateAsarPath, true);
+            const appAsarPathArg = this._getArg(appAsarPath, true);
+            const exePathArg = this._getArg(exePath, true);
+            args = [
+                '-WindowStyle', 'hidden',
+                '-FilePath', `"${updaterPath}"`,
+                '-ArgumentList', `"${updateAsarPathArg} ${appAsarPathArg} ${exePathArg} ${needAdminRun} ${process.arch}"`,
+                '-Verb', 'RunAs'
+            ];
+        } else {
+            shell = true;
+            command = `"${updaterPath}"`;
+            const updateAsarPathArg = this._getArg(updateAsarPath);
+            const appAsarPathArg = this._getArg(appAsarPath);
+            const exePathArg = this._getArg(exePath);
+            args = [updateAsarPathArg, appAsarPathArg, exePathArg, needAdminRun];
+        }
+
+        const options = {shell: shell, stdio: 'ignore'};
+
+        try {
+            this._log(`Update start shell process. Command:${command}, Args:${args.join(' ')}`);
+            const childProcess = child_process.spawn(command, args, options);
+
+            await new Promise((resolve, reject) => {
+                if (needAdminRun) {
+                    childProcess.on('exit', (code) => {
+                        if (code == 1) {
+                            reject('The operation has been canceled by the user');
+                        } else {
+                            resolve();
+                        }
+                    });
+                } else {
+                    function checkPid() {
+                        if (childProcess.pid) {
+                            clearInterval(intervalId);
+                            resolve();
+                        }
+                    }
+                    const intervalId = setInterval(checkPid, 100);
+                    childProcess.on('error', (error) => {
+                        clearInterval(intervalId);
+                        reject(error);
+                    });
+                }
             });
         } catch (error) {
             throw new Error('Start shell process Error: ' + error);
@@ -257,24 +278,31 @@ const Updater = class Updater extends EventEmitter {
     }
 
     getAppVersion() {
-        if (this._options?.test?.enable) {
-            return this._options?.test?.appVersion;
-        }
-        const {app} = require('electron');
         return app.getVersion();
     }
 
     getAppDir() {
-        return path.dirname(this.getExePath());
+        if(this.isDev()){
+            return app.getAppPath();
+        }else {
+            return path.dirname(this.getExePath());
+        }
     }
 
     getExePath() {
-        if (this._options?.test?.enable) {
-            return this._options?.test?.exePath;
-        }
-        const {app} = require('electron');
-        //可执行文件路径，Mac返回路径为 AppName.app/Contents/MacOS/AppName
+        //可执行文件路径，Mac返回路径为 AppName.app/Contents/MacOS/AppName。dev返回node_modules\electron\dist\updater.exe
         return app.getPath('exe');
+    }
+
+     isDev() {
+        return !app.isPackaged;
+    }
+
+    _getArg(str, isPowershell = false) {
+        if (isPowershell) {
+            return `\`"${str}\`"`;
+        }
+        return `"${str}"`;
     }
 }
 

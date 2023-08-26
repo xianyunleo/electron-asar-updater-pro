@@ -91,5 +91,5 @@ updater.on('status', status => {
 ```
 静态属性
 ```
-    Updater.EnumStatus; //更新的状态
+Updater.EnumStatus; //更新的状态
 ```

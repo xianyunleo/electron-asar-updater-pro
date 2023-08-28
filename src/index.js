@@ -247,9 +247,12 @@ const Updater = class Updater extends EventEmitter {
     }
 
     async _getResponse(stream) {
-        return new Promise((resolve) => {
-            stream.on('response', async response => {
+        return new Promise((resolve, reject) => {
+            stream.on('response', response => {
                 resolve(response);
+            });
+            stream.on('error', error => {
+                reject(error);
             });
         });
     }

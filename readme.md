@@ -4,9 +4,11 @@
 
 优点：Windows golang写的 updater.exe，不需要安装任何的runtime，支持管理员提权和自动降权
 
+建议：因为开发模式下，路径不准确，仅测试代码跑通。完整流程，请将项目编译打包运行测试。
+
 安装
 ```
-$ npm i electron-asar-updater-pro
+npm i electron-asar-updater-pro
 ```
 
 安装要求
@@ -16,7 +18,7 @@ Electron >= 12
 Node >= 14
 ```
 
-demo
+示例
 
 ```
 const { app, dialog } = require('electron');
@@ -93,3 +95,7 @@ updater.on('status', status => {
 ```
 Updater.EnumStatus; //更新的状态
 ```
+
+其它：
+
+如果你使用了`vue-cli-plugin-electron-builder` 作为脚手架，那么你可能需要配置`externals`，请参考 https://nklayman.github.io/vue-cli-plugin-electron-builder/guide/guide.html#native-modules

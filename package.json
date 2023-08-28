@@ -1,7 +1,7 @@
 {
   "name": "electron-asar-updater-pro",
-  "version": "0.0.6",
-  "description": "Handles Electron app.asar updates.",
+  "version": "0.0.8",
+  "description": "Handles Electron app.asar updates. Electron asar 热更新",
   "main": "src/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -10,6 +10,12 @@
     "type": "git",
     "url": "git+https://github.com/xianyunleo/electron-asar-updater-pro.git"
   },
+  "keywords": [
+    "electron",
+    "asar",
+    "update",
+    "updater"
+  ],
   "author": "xianyunleo@qq.com",
   "license": "MIT",
   "bugs": {

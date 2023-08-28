@@ -134,7 +134,7 @@ const Updater = class Updater extends EventEmitter {
         let response = await this._getResponse(responseStream);
         let contentType = response.headers['content-type'];
         if (!fs.existsSync(this._downloadDir)) {
-            fs.mkdir(this._downloadDir);
+            fs.mkdirSync(this._downloadDir, {recursive: true});
         }
         let filePath = path.join(this._downloadDir, this._updateFileName);
         if (contentType && contentType.includes('zip')) {

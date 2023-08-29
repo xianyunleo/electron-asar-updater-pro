@@ -54,7 +54,6 @@ const Updater = class Updater extends EventEmitter {
         if (!this._isOldNode) {
             this._dlAbortController = new AbortController();
         }
-        this._log(`AppDir: ${this.getAppDir()}`);
     }
 
     /**
@@ -65,6 +64,7 @@ const Updater = class Updater extends EventEmitter {
         const url = this._options?.api?.url;
         if (!url) return false;
 
+        this._log(`AppDir: ${this.getAppDir()}`);
         const appVersion = this.getAppVersion();
         this._log(`Check:appVersion:${appVersion}`);
         let respData;
@@ -101,8 +101,8 @@ const Updater = class Updater extends EventEmitter {
                 this._changeStatus(Updater.EnumStatus.Cancel, 'Download cancelled');
                 return;
             } else {
-                this._changeStatus(Updater.EnumStatus.DownloadError, 'Download Error');
-                throw new Error('Download Error');
+                this._changeStatus(Updater.EnumStatus.DownloadError, `Download Error,${error}`);
+                throw new Error(`Download Error,${error}`);
             }
         }
 

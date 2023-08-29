@@ -48,7 +48,7 @@ async function update() {
 
 //Main Process
 const options = {
-    api: {url: 'http://dl.phpenv.cn/test.json', method: 'get'},
+    api: {url: 'http://www.test.com/api'},
     debug: true
 }
 const updater = new Updater(options);

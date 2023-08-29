@@ -21,29 +21,48 @@ Node >= 14
 示例
 
 ```
-const { app, dialog } = require('electron');
-const Updater =  require("electron-asar-updater-pro");
+//Renderer Process
+async function check() {
+    try {
+        const result = await ipcRenderer.invoke('updater-check');
+        if(result){
+            await update();
+        }
+    } catch (error) {
+        console.log('检查更新失败');
+        console.log(error);
+    }
+};
 
+async function update() {
+    try {
+        ipcRenderer.on('updater-download-progress', (event, message) => {
+            console.log(message)
+        })
+        await ipcRenderer.invoke('updater-update');
+    } catch (error) {
+        console.log('更新失败');
+        console.log(error);
+    }
+};
+
+//Main Process
 const options = {
-    api: {url: 'http://www.test.com/api'},
-    debug:true
+    api: {url: 'http://dl.phpenv.cn/test.json', method: 'get'},
+    debug: true
 }
 const updater = new Updater(options);
-let canUpdate;
-try {
-    canUpdate =  await updater.check();
-} catch (error) {
-    console.log(error);
-    dialog.showErrorBox('info', '检查更新失败');
-}
-try {
-    if(canUpdate){
-        await updater.update();
-    }
-} catch (error) {
-    console.log(error);
-    dialog.showErrorBox('info', '更新失败');
-}
+
+ipcMain.handle('updater-check', async (event, data) => {
+    return await updater.check();
+});
+
+ipcMain.handle('updater-update', async (event, data) => {
+    updater.on('downloadProgress', progress => {
+        event.sender.send('updater-download-progress', progress)
+    });
+    await updater.update();
+});
 ```
 
 服务端api json 

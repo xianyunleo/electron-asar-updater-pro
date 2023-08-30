@@ -116,4 +116,6 @@ Updater.EnumStatus; //更新的状态
 
 其它：
 
-如果你使用了`vue-cli-plugin-electron-builder` 作为脚手架，那么你可能需要配置`externals`，请参考 https://nklayman.github.io/vue-cli-plugin-electron-builder/guide/guide.html#native-modules
+如果你使用了`electron-vite` 作为脚手架，那么你可能需要配置`build.rollupOptions.external: ["original-fs"],`，请参考 https://cn.electron-vite.org/config/#%E5%86%85%E7%BD%AE%E9%85%8D%E7%BD%AE
+
+如果你使用了`vue-cli-plugin-electron-builder` 作为脚手架，那么你可能需要配置`externals: ["electron-asar-updater-pro"],`，请参考 https://nklayman.github.io/vue-cli-plugin-electron-builder/guide/guide.html#native-modules

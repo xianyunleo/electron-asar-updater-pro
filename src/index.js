@@ -1,5 +1,5 @@
 const {app} = require('electron');
-const fs = require("fs");
+const fs = require("original-fs");
 const path = require("path");
 const child_process = require("child_process");
 const {EventEmitter} = require("events");
@@ -7,8 +7,6 @@ const electronLog = require("electron-log");
 const semverDiff = require("semver-diff");
 const got = require("got");
 const AdmZip = require("adm-zip");
-const isAdmin = require("is-admin");
-
 
 const Updater = class Updater extends EventEmitter {
     _options = {
@@ -21,7 +19,6 @@ const Updater = class Updater extends EventEmitter {
         debug: false,
     };
     _updateFileName = 'update.asar';
-    _resourcesDirName = 'resources';
     _downloadUrl = '';
     _downloadDir = '';
     _downloadFilePath = '';
@@ -50,7 +47,7 @@ const Updater = class Updater extends EventEmitter {
             options.debug = true;
         }
         this._options = options;
-        this._downloadDir = path.resolve(this.getAppDir(), this._resourcesDirName);
+        this._downloadDir = app.getPath('userData');
         if (!this._isOldNode) {
             this._dlAbortController = new AbortController();
         }
@@ -126,6 +123,7 @@ const Updater = class Updater extends EventEmitter {
         }
         this._changeStatus(Updater.EnumStatus.Finish);
 
+        app.relaunch();
         app.quit();
     }
 
@@ -177,49 +175,36 @@ const Updater = class Updater extends EventEmitter {
     }
 
     async _move() {
-        const updaterPath = path.join(this.getAppDir(), 'updater.exe');
-        try {
-            const moduleDir = path.dirname(__dirname);
-            fs.copyFileSync(path.join(moduleDir, 'updater.exe'), updaterPath);
-        } catch (error) {
-            throw new Error('Copy updater.exe Error');
-        }
-        const updateAsarPath = path.join(this._downloadDir, 'update.asar');
-        const appAsarPath = path.join(this._downloadDir, 'app.asar');
-        const exePath = this.getExePath();
-        //是否需要以管理员身份运行updater.exe。如果程序本事就是管理员身份运行的，那么updater.exe会继承权限，不需要再提权运行。
-        const needAdminRun = !(await isAdmin()) && this._options?.adminRun ? 1 : 0;
+        const resourcesDir =  this.getResourcesDir();
+        const updateAsarPath = path.join(this._downloadDir,this._updateFileName);
+        const appAsarPath = path.join(resourcesDir, 'app.asar');
 
-        let shell, command, args;
-        if (needAdminRun) {
-            shell = 'powershell';
-            command = `Start-Process`;
+        if(!this.isDev()){
+            const bakAsarPath = path.join(this._downloadDir, 'app.bak.asar');
+            fs.copyFileSync(appAsarPath, bakAsarPath);
+        }
+
+        const canWriteResources = this._checkWritePermission(appAsarPath);
+        if (canWriteResources) {
+            this._log(`Copy ${updateAsarPath} to ${appAsarPath}`);
+            fs.copyFileSync(updateAsarPath, appAsarPath);
+        } else {
+            const shell = 'powershell';
+            const options = {shell: shell, stdio: 'ignore'};
+            const command = `Start-Process`;
             const updateAsarPathArg = this._getArg(updateAsarPath, true);
             const appAsarPathArg = this._getArg(appAsarPath, true);
-            const exePathArg = this._getArg(exePath, true);
-            args = [
+            const args = [
                 '-WindowStyle', 'hidden',
-                '-FilePath', `"${updaterPath}"`,
-                '-ArgumentList', `"${updateAsarPathArg} ${appAsarPathArg} ${exePathArg} ${needAdminRun} ${process.arch}"`,
+                '-FilePath', 'cmd',
+                '-ArgumentList', `"/c copy /y ${updateAsarPathArg} ${appAsarPathArg}"`,
                 '-Verb', 'RunAs'
             ];
-        } else {
-            shell = true;
-            command = `"${updaterPath}"`;
-            const updateAsarPathArg = this._getArg(updateAsarPath);
-            const appAsarPathArg = this._getArg(appAsarPath);
-            const exePathArg = this._getArg(exePath);
-            args = [updateAsarPathArg, appAsarPathArg, exePathArg, needAdminRun];
-        }
 
-        const options = {shell: shell, stdio: 'ignore'};
-
-        try {
             this._log(`Update start shell process. Command:${command}, Args:${args.join(' ')}`);
-            const childProcess = child_process.spawn(command, args, options);
-
-            await new Promise((resolve, reject) => {
-                if (needAdminRun) {
+            try {
+                const childProcess = child_process.spawn(command, args, options);
+                await new Promise((resolve, reject) => {
                     childProcess.on('exit', (code) => {
                         if (code == 1) {
                             reject('The operation has been canceled by the user');
@@ -227,22 +212,13 @@ const Updater = class Updater extends EventEmitter {
                             resolve();
                         }
                     });
-                } else {
-                    function checkPid() {
-                        if (childProcess.pid) {
-                            clearInterval(intervalId);
-                            resolve();
-                        }
-                    }
-                    const intervalId = setInterval(checkPid, 100);
                     childProcess.on('error', (error) => {
-                        clearInterval(intervalId);
                         reject(error);
                     });
-                }
-            });
-        } catch (error) {
-            throw new Error('Start shell process Error: ' + error);
+                });
+            } catch (error) {
+                throw new Error('Start shell process Error: ' + error);
+            }
         }
     }
 
@@ -285,10 +261,18 @@ const Updater = class Updater extends EventEmitter {
     }
 
     getAppDir() {
-        if(this.isDev()){
+        if (this.isDev()) {
             return app.getAppPath();
-        }else {
+        } else {
             return path.dirname(this.getExePath());
+        }
+    }
+
+    getResourcesDir() {
+        if (this.isDev()) {
+            return app.getAppPath();
+        } else {
+            return path.dirname(app.getAppPath());
         }
     }
 
@@ -297,7 +281,7 @@ const Updater = class Updater extends EventEmitter {
         return app.getPath('exe');
     }
 
-     isDev() {
+    isDev() {
         return !app.isPackaged;
     }
 
@@ -306,6 +290,20 @@ const Updater = class Updater extends EventEmitter {
             return `\`"${str}\`"`;
         }
         return `"${str}"`;
+    }
+
+    _checkWritePermission(path) {
+        try {
+            if (process.platform === 'win32') {
+                const fd = fs.openSync(path, "w");
+                fs.closeSync(fd);
+            } else {
+                fs.accessSync(path, fs.constants.W_OK);
+            }
+            return true;
+        } catch (err) {
+            return false;
+        }
     }
 }
 

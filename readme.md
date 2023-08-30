@@ -2,7 +2,7 @@
 
 专业现代化的 electron asar文件更新。目前只支持Windows，Mac todo
 
-优点：Windows golang写的 updater.exe，不需要安装任何的runtime，支持管理员提权和自动降权
+优点：Windows 无需额外的 exe，支持C盘Program Files目录下的更新。
 
 建议：因为开发模式下，路径不准确，仅测试代码跑通。完整流程，请将项目编译打包运行测试。
 
@@ -14,7 +14,7 @@ npm i electron-asar-updater-pro
 安装要求
 
 ```
-Electron >= 12
+Electron >= 13
 Node >= 14
 ```
 
@@ -86,7 +86,6 @@ options = {
         body: {},  //服务端可根据这个参数，返回不同的response json
         method: 'POST|GET', //default POST
     },
-    adminRun: false, //true：管理员身份运行updater.exe；false：自动。default false。
     debug: false,
 };
 const updater = new Updater(options);

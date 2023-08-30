@@ -1,5 +1,5 @@
 const {app} = require('electron');
-const fs = require("original-fs");
+const FileSystem = require("original-fs");
 const path = require("path");
 const child_process = require("child_process");
 const {EventEmitter} = require("events");
@@ -131,18 +131,18 @@ const Updater = class Updater extends EventEmitter {
         let responseStream = got.stream(this._downloadUrl);
         let response = await this._getResponse(responseStream);
         let contentType = response.headers['content-type'];
-        if (!fs.existsSync(this._downloadDir)) {
-            fs.mkdirSync(this._downloadDir, {recursive: true});
+        if (!FileSystem.existsSync(this._downloadDir)) {
+            FileSystem.mkdirSync(this._downloadDir, {recursive: true});
         }
         let filePath = path.join(this._downloadDir, this._updateFileName);
         if (contentType && contentType.includes('zip')) {
             filePath = path.join(this._downloadDir, `${this._updateFileName}.zip`);
         }
         this._downloadFilePath = filePath;
-        if (fs.existsSync(filePath)) {
-            fs.rmSync(filePath);
+        if (FileSystem.existsSync(filePath)) {
+            FileSystem.rmSync(filePath);
         }
-        let writeStream = fs.createWriteStream(filePath);
+        let writeStream = FileSystem.createWriteStream(filePath);
 
         responseStream.on('downloadProgress', progress => {
             this.emit('downloadProgress', progress)
@@ -181,13 +181,14 @@ const Updater = class Updater extends EventEmitter {
 
         if(!this.isDev()){
             const bakAsarPath = path.join(this._downloadDir, 'app.bak.asar');
-            fs.copyFileSync(appAsarPath, bakAsarPath);
+            FileSystem.copyFileSync(appAsarPath, bakAsarPath);
         }
 
         const canWriteResources = this._checkWritePermission(appAsarPath);
+        this._log(`canWriteResources ${canWriteResources}`);
         if (canWriteResources) {
             this._log(`Copy ${updateAsarPath} to ${appAsarPath}`);
-            fs.copyFileSync(updateAsarPath, appAsarPath);
+            FileSystem.copyFileSync(updateAsarPath, appAsarPath);
         } else {
             const shell = 'powershell';
             const options = {shell: shell, stdio: 'ignore'};
@@ -294,12 +295,8 @@ const Updater = class Updater extends EventEmitter {
 
     _checkWritePermission(path) {
         try {
-            if (process.platform === 'win32') {
-                const fd = fs.openSync(path, "w");
-                fs.closeSync(fd);
-            } else {
-                fs.accessSync(path, fs.constants.W_OK);
-            }
+            const fd = FileSystem.openSync(path, "w");
+            FileSystem.closeSync(fd);
             return true;
         } catch (err) {
             return false;

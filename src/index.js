@@ -190,6 +190,10 @@ const Updater = class Updater extends EventEmitter {
             this._log(`Copy ${updateAsarPath} to ${appAsarPath}`);
             FileSystem.copyFileSync(updateAsarPath, appAsarPath);
         } else {
+            if (process.platform !== 'win32') {
+                throw new Error('app.asar access denied');
+            }
+
             const shell = 'powershell';
             const options = {shell: shell, stdio: 'ignore'};
             const command = `Start-Process`;
@@ -295,8 +299,12 @@ const Updater = class Updater extends EventEmitter {
 
     _checkWritePermission(path) {
         try {
-            const fd = FileSystem.openSync(path, "w");
-            FileSystem.closeSync(fd);
+            if (process.platform === 'win32') {
+                const fd = FileSystem.openSync(path, "w");
+                FileSystem.closeSync(fd);
+            } else {
+                FileSystem.accessSync(path, FileSystem.constants.W_OK);
+            }
             return true;
         } catch (err) {
             return false;

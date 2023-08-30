@@ -1,6 +1,6 @@
 # electron-asar-updater-pro
 
-专业现代化的 electron asar文件更新。目前只支持Windows，Mac todo
+专业现代化的 electron asar文件更新。支持Windows、Mac 、Linux
 
 优点：Windows 无需额外的 exe，支持C盘Program Files目录下的更新。
 
@@ -75,6 +75,8 @@ ipcMain.handle('updater-update', async (event, data) => {
 如果asar是zip文件，那么结构如下
 ── update.zip
 └── update.asar
+
+update.asar或者update.zip 文件名随意，只要格式正确
 ```
 
 构造方法

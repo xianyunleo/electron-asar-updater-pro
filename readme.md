@@ -67,6 +67,8 @@ ipcMain.handle('updater-update', async (event, data) => {
 
 服务端api json 
 ```
+asar字段的文件名可以随意
+
 {
     "version": "1.1.0",
     "asar": "http://www.test.com/update.asar"
@@ -76,7 +78,6 @@ ipcMain.handle('updater-update', async (event, data) => {
 ── update.zip
 └── update.asar
 
-update.asar或者update.zip 文件名随意，只要格式正确
 ```
 
 构造方法

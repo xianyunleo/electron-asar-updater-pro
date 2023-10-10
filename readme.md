@@ -6,21 +6,21 @@
 
 建议：因为开发模式下，路径不准确，仅测试代码跑通。完整流程，请将项目编译打包运行测试。
 
-安装
+#### 安装
 ```
 npm i electron-asar-updater-pro
 ```
 
-安装要求
+#### 安装要求
 
 ```
 Electron >= 13
 Node >= 14
 ```
 
-示例
+#### 示例
 
-```
+```js
 //Renderer Process
 async function check() {
     try {
@@ -65,7 +65,7 @@ ipcMain.handle('updater-update', async (event, data) => {
 });
 ```
 
-服务端api json 
+#### 服务端api json 
 ```
 asar字段的文件名可以随意
 
@@ -80,9 +80,9 @@ asar字段的文件名可以随意
 
 ```
 
-构造方法
+#### 构造方法
 
-```
+```js
 options = {
     api: {
         url: '', //
@@ -94,16 +94,16 @@ options = {
 const updater = new Updater(options);
 ```
 
-方法
+#### 方法
 
-```
-async check(); //检查是否有更新，本地版本号和远程版本号比较
-async update(); //更新并重启软件，必须先执行check方法
+```js
+await check(); //检查是否有更新，本地版本号和远程版本号比较
+await update(); //更新并重启软件，必须先执行check方法
 stopDownload(); //停止下载，仅限node v15及以上版本。
 ```
 
-事件
-```
+#### 事件
+```js
 updater.on('downloadProgress', progress => {
     //下载进度
 });
@@ -112,12 +112,12 @@ updater.on('status', status => {
     //Updater.EnumStatus，更新的状态，用作参考。 
 });
 ```
-静态属性
-```
+#### 静态属性
+```js
 Updater.EnumStatus; //更新的状态
 ```
 
-其它：
+#### 其它：
 
 如果你使用了`electron-vite` 作为脚手架，那么你可能需要配置`build.rollupOptions.external: ["original-fs"],`，请参考 https://cn.electron-vite.org/config/#%E5%86%85%E7%BD%AE%E9%85%8D%E7%BD%AE
 

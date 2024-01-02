@@ -1,5 +1,6 @@
 const {app} = require('electron');
 const FileSystem = require("original-fs");
+const fsPromises = FileSystem.promises;
 const path = require("path");
 const child_process = require("child_process");
 const {EventEmitter} = require("events");
@@ -7,6 +8,10 @@ const electronLog = require("electron-log");
 const semverDiff = require("semver-diff");
 const got = require("got");
 const AdmZip = require("adm-zip");
+
+const exists = async (p) => {
+    return fsPromises.access(p).then(() => true).catch(() => false)
+}
 
 const Updater = class Updater extends EventEmitter {
     _options = {
@@ -131,16 +136,16 @@ const Updater = class Updater extends EventEmitter {
         let responseStream = got.stream(this._downloadUrl);
         let response = await this._getResponse(responseStream);
         let contentType = response.headers['content-type'];
-        if (!FileSystem.existsSync(this._downloadDir)) {
-            FileSystem.mkdirSync(this._downloadDir, {recursive: true});
+        if (!await exists(this._downloadDir)) {
+            await fsPromises.mkdir(this._downloadDir, {recursive: true});
         }
         let filePath = path.join(this._downloadDir, this._updateFileName);
         if (contentType && contentType.includes('zip')) {
             filePath = path.join(this._downloadDir, `${this._updateFileName}.zip`);
         }
         this._downloadFilePath = filePath;
-        if (FileSystem.existsSync(filePath)) {
-            FileSystem.rmSync(filePath);
+        if (await exists(filePath)) {
+            await fsPromises.rm(filePath);
         }
         let writeStream = FileSystem.createWriteStream(filePath);
 
@@ -181,14 +186,14 @@ const Updater = class Updater extends EventEmitter {
 
         if(!this.isDev()){
             const bakAsarPath = path.join(this._downloadDir, 'app.bak.asar');
-            FileSystem.copyFileSync(appAsarPath, bakAsarPath);
+            await fsPromises.copyFile(appAsarPath, bakAsarPath);
         }
 
-        const canWriteResources = this._checkWritePermission(appAsarPath);
+        const canWriteResources = await this._checkWritePermission(appAsarPath);
         this._log(`canWriteResources ${canWriteResources}`);
         if (canWriteResources) {
             this._log(`Copy ${updateAsarPath} to ${appAsarPath}`);
-            FileSystem.copyFileSync(updateAsarPath, appAsarPath);
+            await fsPromises.copyFile(updateAsarPath, appAsarPath);
         } else {
             if (process.platform !== 'win32') {
                 throw new Error('app.asar access denied');
@@ -212,7 +217,7 @@ const Updater = class Updater extends EventEmitter {
                 await new Promise((resolve, reject) => {
                     childProcess.on('exit', (code) => {
                         if (code == 1) {
-                            reject('The operation has been canceled by the user');
+                            reject(new Error('The operation has been canceled by the user'));
                         } else {
                             resolve();
                         }
@@ -297,13 +302,13 @@ const Updater = class Updater extends EventEmitter {
         return `"${str}"`;
     }
 
-    _checkWritePermission(path) {
+    async _checkWritePermission(path) {
         try {
             if (process.platform === 'win32') {
-                const fd = FileSystem.openSync(path, "w");
-                FileSystem.closeSync(fd);
+                const fileHandle  = await fsPromises.open(path, "w");
+                await fileHandle?.close();
             } else {
-                FileSystem.accessSync(path, FileSystem.constants.W_OK);
+                await fsPromises.access(path, FileSystem.constants.W_OK);
             }
             return true;
         } catch (err) {

@@ -67,7 +67,7 @@ ipcMain.handle('updater-update', async (event, data) => {
 
 #### 服务端api json 
 ```
-远程asar文件名可以随意
+远程asar文件名可以随意，sha256是指asar文件或者zip文件的hash
 
 {
     "version": "1.1.0",

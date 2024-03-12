@@ -114,7 +114,7 @@ const Updater = class Updater extends EventEmitter {
         }
 
         if (this._sha256) {
-            const fileBuffer = await FileSystem.readFile(this._downloadFilePath);
+            const fileBuffer = await fsPromises.readFile(this._downloadFilePath);
             if (this.sha256(fileBuffer) !== this._sha256) {
                 this._changeStatus(Updater.EnumStatus.HashNoMatch, `File hash mismatch`);
                 throw new Error('File hash mismatch');

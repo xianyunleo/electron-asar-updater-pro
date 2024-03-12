@@ -67,11 +67,12 @@ ipcMain.handle('updater-update', async (event, data) => {
 
 #### 服务端api json 
 ```
-asar字段的文件名可以随意
+远程asar文件名可以随意
 
 {
     "version": "1.1.0",
-    "asar": "http://www.test.com/update.asar"
+    "asar": "http://www.test.com/update.asar",
+    "sha256": "xxx"
 }
 
 如果asar是zip文件，那么结构如下
@@ -88,6 +89,7 @@ options = {
         url: '', //
         body: {},  //服务端可根据这个参数，返回不同的response json
         method: 'POST|GET', //default POST
+        headers: {}
     },
     debug: false,
 };

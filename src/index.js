@@ -20,11 +20,11 @@ const Updater = class Updater extends EventEmitter {
             body: null,
             method: 'POST',
         },
-        adminRun: false,
         debug: false,
     };
     _updateFileName = 'update.asar';
     _downloadUrl = '';
+    _sha256 = '';
     _downloadDir = '';
     _downloadFilePath = '';
     _status = 0;
@@ -41,6 +41,7 @@ const Updater = class Updater extends EventEmitter {
         ExtractError: 107,
         Moving: 108,
         MoveError: 109,
+        HashNoMatch: 110,
         Finish: 100,
         Cancel: 200,
     }
@@ -48,7 +49,7 @@ const Updater = class Updater extends EventEmitter {
     constructor(options) {
         super();
         this._isOldNode = !!this._getNodeMajorVersion() < 15;
-        if (options?.test?.enable) {
+        if (options.test?.enable) {
             options.debug = true;
         }
         this._options = options;
@@ -63,17 +64,20 @@ const Updater = class Updater extends EventEmitter {
      * @returns {Promise<boolean>}
      */
     async check() {
-        const url = this._options?.api?.url;
+        const url = this._options.api?.url;
         if (!url) return false;
 
         this._log(`AppDir: ${this.getAppDir()}`);
         const appVersion = this.getAppVersion();
         this._log(`Check:appVersion:${appVersion}`);
         let respData;
-        const gotOptions = {method: this._options?.api?.method ?? 'POST'};
+        const gotOptions = {method: this._options.api?.method ?? 'POST'};
         try {
-            if (this._options?.api?.body) {
+            if (this._options.api?.body) {
                 gotOptions.json = this._options.api.body;
+            }
+            if (this._options.api?.headers) {
+                gotOptions.headers = this._options.api.headers;
             }
             respData = await got(url, gotOptions).json();
         } catch (error) {
@@ -91,6 +95,7 @@ const Updater = class Updater extends EventEmitter {
             return false;
         }
         this._downloadUrl = respData.asar;
+        this._sha256 =  respData.sha256;
         return true;
     }
 
@@ -105,6 +110,14 @@ const Updater = class Updater extends EventEmitter {
             } else {
                 this._changeStatus(Updater.EnumStatus.DownloadError, `Download Error,${error}`);
                 throw new Error(`Download Error,${error}`);
+            }
+        }
+
+        if (this._sha256) {
+            const fileBuffer = await FileSystem.readFile(this._downloadFilePath);
+            if (this.sha256(fileBuffer) !== this._sha256) {
+                this._changeStatus(Updater.EnumStatus.HashNoMatch, `File hash mismatch`);
+                throw new Error('File hash mismatch');
             }
         }
 
@@ -252,7 +265,7 @@ const Updater = class Updater extends EventEmitter {
     }
 
     _log(text) {
-        if (this._options?.debug) {
+        if (this._options.debug) {
             console.log('Updater: ', text)
         }
         electronLog.info('[ electron-asar-updater-pro ]', text)
@@ -314,6 +327,13 @@ const Updater = class Updater extends EventEmitter {
         } catch (err) {
             return false;
         }
+    }
+
+    sha256(data) {
+        const crypto = require('crypto');
+        const hash = crypto.createHash('sha256');
+        hash.update(data);
+        return hash.digest('hex');
     }
 }
 

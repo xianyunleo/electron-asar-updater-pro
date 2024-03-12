@@ -1,6 +1,6 @@
 {
   "name": "electron-asar-updater-pro",
-  "version": "v2.1.0",
+  "version": "v2.1.1",
   "description": "Handles Electron app.asar updates. Electron asar 热更新",
   "main": "src/index.js",
   "scripts": {
@@ -28,7 +28,6 @@
     "extract-zip": "^2.0.0",
     "got": "^11.0.0",
     "is-admin": "^3.0.0",
-    "original-fs": "^1.2.0",
     "semver-diff": "^3.0.0"
   },
   "devDependencies": {

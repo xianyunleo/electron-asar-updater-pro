@@ -145,7 +145,7 @@ const Updater = class Updater extends EventEmitter {
         }
         this._downloadFilePath = filePath;
         if (await exists(filePath)) {
-            await fsPromises.rm(filePath);
+            await fsPromises.rm(filePath, {force: true, recursive: true});
         }
         let writeStream = FileSystem.createWriteStream(filePath);
 

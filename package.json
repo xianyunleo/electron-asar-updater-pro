@@ -25,9 +25,7 @@
   "dependencies": {
     "adm-zip": "^0.5.10",
     "electron-log": "^4.0.0",
-    "extract-zip": "^2.0.0",
     "got": "^11.0.0",
-    "is-admin": "^3.0.0",
     "semver-diff": "^3.0.0"
   },
   "devDependencies": {

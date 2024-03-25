@@ -206,6 +206,7 @@ const Updater = class Updater extends EventEmitter {
         this._log(`canWriteResources ${canWriteResources}`);
         if (canWriteResources) {
             this._log(`Copy ${updateAsarPath} to ${appAsarPath}`);
+            await fsPromises.chmod(appAsarPath, 0o666)
             await fsPromises.copyFile(updateAsarPath, appAsarPath);
         } else {
             if (process.platform !== 'win32') {
@@ -220,7 +221,7 @@ const Updater = class Updater extends EventEmitter {
             const args = [
                 '-WindowStyle', 'hidden',
                 '-FilePath', 'cmd',
-                '-ArgumentList', `"/c copy /y ${updateAsarPathArg} ${appAsarPathArg}"`,
+                '-ArgumentList', `"/c attrib -r ${appAsarPathArg} & copy /y ${updateAsarPathArg} ${appAsarPathArg}"`,
                 '-Verb', 'RunAs'
             ];
 

@@ -1,6 +1,6 @@
 {
   "name": "electron-asar-updater-pro",
-  "version": "v2.2.2",
+  "version": "v2.2.3",
   "description": "Handles Electron app.asar updates. Electron asar 热更新",
   "main": "src/index.js",
   "scripts": {

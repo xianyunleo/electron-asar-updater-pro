@@ -91,6 +91,7 @@ options = {
         method: 'POST|GET', //default POST
         headers: {}
     },
+    autoRestart: true,
     debug: false,
 };
 const updater = new Updater(options);

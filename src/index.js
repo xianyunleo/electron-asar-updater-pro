@@ -20,6 +20,7 @@ const Updater = class Updater extends EventEmitter {
             body: null,
             method: 'POST',
         },
+        autoRestart: true,
         debug: false,
     };
     _updateFileName = 'update.asar';
@@ -141,8 +142,11 @@ const Updater = class Updater extends EventEmitter {
         }
         this._changeStatus(Updater.EnumStatus.Finish);
 
-        app.relaunch();
-        app.quit();
+        if (this._options.autoRestart) {
+            app.relaunch();
+            app.quit();
+        }
+
     }
 
     async _download() {

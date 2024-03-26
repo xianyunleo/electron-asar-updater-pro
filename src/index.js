@@ -197,14 +197,18 @@ const Updater = class Updater extends EventEmitter {
         const updateAsarPath = path.join(this._downloadDir,this._updateFileName);
         const appAsarPath = path.join(resourcesDir, 'app.asar');
 
-        if(!this.isDev()){
-            const bakAsarPath = path.join(this._downloadDir, 'app.bak.asar');
-            await fsPromises.rm(bakAsarPath, {force: true, recursive: true}); //如果已有bak文件是只读，那么必须要先删除才能copy overwrite
-            await fsPromises.copyFile(appAsarPath, bakAsarPath);
+        if (!this.isDev()) {
+            try {
+                const bakAsarPath = path.join(this._downloadDir, 'app.bak.asar');
+                await fsPromises.rm(bakAsarPath, {force: true, recursive: true}); //如果已有bak文件是只读，那么必须要先删除才能copy overwrite
+                await fsPromises.copyFile(appAsarPath, bakAsarPath);
+            } catch (e) {
+                this._log(`Backup app.bak.asar error.${e.message}`);
+            }
         }
 
         const canWriteResources = await this._checkWritePermission(appAsarPath);
-        this._log(`canWriteResources ${canWriteResources}`);
+        this._log(`CanWriteResources ${canWriteResources}`);
         if (canWriteResources) {
             this._log(`Copy ${updateAsarPath} to ${appAsarPath}`);
             await fsPromises.chmod(appAsarPath, 0o666)

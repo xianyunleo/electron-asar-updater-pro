@@ -50,9 +50,7 @@ const Updater = class Updater extends EventEmitter {
     constructor(options) {
         super();
         this._isOldNode = !!this._getNodeMajorVersion() < 15;
-        if (options.test?.enable) {
-            options.debug = true;
-        }
+        options.autoRestart = options.autoRestart ?? true
         this._options = options;
         this._downloadDir = app.getPath('userData');
         if (!this._isOldNode) {

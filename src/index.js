@@ -199,6 +199,7 @@ const Updater = class Updater extends EventEmitter {
 
         if(!this.isDev()){
             const bakAsarPath = path.join(this._downloadDir, 'app.bak.asar');
+            await fsPromises.rm(bakAsarPath, {force: true, recursive: true}); //如果已有bak文件是只读，那么必须要先删除才能copy overwrite
             await fsPromises.copyFile(appAsarPath, bakAsarPath);
         }
 

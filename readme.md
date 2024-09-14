@@ -21,6 +21,25 @@ Node >= 14
 #### 示例
 
 ```js
+//Main Process
+const Updater = require('electron-asar-updater-pro');
+const options = {
+    api: {url: 'http://www.test.com/api'},
+    debug: true
+}
+const updater = new Updater(options);
+
+ipcMain.handle('updater-check', async (event, data) => {
+    return await updater.check();
+});
+
+ipcMain.handle('updater-update', async (event, data) => {
+    updater.on('downloadProgress', progress => {
+        event.sender.send('updater-download-progress', progress)
+    });
+    await updater.update();
+});
+
 //Renderer Process
 async function check() {
     try {
@@ -46,23 +65,6 @@ async function update() {
     }
 };
 
-//Main Process
-const options = {
-    api: {url: 'http://www.test.com/api'},
-    debug: true
-}
-const updater = new Updater(options);
-
-ipcMain.handle('updater-check', async (event, data) => {
-    return await updater.check();
-});
-
-ipcMain.handle('updater-update', async (event, data) => {
-    updater.on('downloadProgress', progress => {
-        event.sender.send('updater-download-progress', progress)
-    });
-    await updater.update();
-});
 ```
 
 #### 服务端api json 
@@ -87,7 +89,7 @@ ipcMain.handle('updater-update', async (event, data) => {
 options = {
     api: {
         url: '', //
-        body: {},  //服务端可根据这个参数，返回不同的response json
+        body: {},   //string或object，服务端可根据这个参数，返回不同的response json
         method: 'POST|GET', //default POST
         headers: {}
     },

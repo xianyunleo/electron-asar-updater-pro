@@ -24,8 +24,8 @@
   "homepage": "https://github.com/xianyunleo/electron-asar-updater-pro#readme",
   "dependencies": {
     "adm-zip": "^0.5.10",
+    "electron-fetch": "^1.9.1",
     "electron-log": "^4.0.0",
-    "got": "^11.0.0",
     "semver-diff": "^3.0.0"
   },
   "devDependencies": {

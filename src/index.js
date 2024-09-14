@@ -1,12 +1,12 @@
-const {app} = require('electron');
-const FileSystem = require("original-fs");
-const fsPromises = FileSystem.promises;
+const {app,net} = require('electron');
+const fs = require("original-fs");
+const fsPromises = fs.promises;
 const path = require("path");
 const child_process = require("child_process");
 const {EventEmitter} = require("events");
 const electronLog = require("electron-log");
 const semverDiff = require("semver-diff");
-const got = require("got");
+const Fetch  = require('electron-fetch')
 const AdmZip = require("adm-zip");
 
 const exists = async (p) => {
@@ -63,22 +63,25 @@ const Updater = class Updater extends EventEmitter {
      * @returns {Promise<boolean>}
      */
     async check() {
-        const url = this._options.api?.url;
+        const url = this._options.api.url;
         if (!url) return false;
 
         this._log(`AppDir: ${this.getAppDir()}`);
         const appVersion = this.getAppVersion();
         this._log(`Check:appVersion:${appVersion}`);
         let respData;
-        const gotOptions = {method: this._options.api?.method ?? 'POST'};
+        const fetchOpts = {method: this._options.api.method ?? 'POST'};
         try {
-            if (this._options.api?.body) {
-                gotOptions.json = this._options.api.body;
+            if (this._options.api.body) {
+                if (typeof this._options.api.body !== 'string') {
+                    this._options.api.body = JSON.stringify(this._options.api.body);
+                }
+                fetchOpts.body = this._options.api.body;
             }
-            if (this._options.api?.headers) {
-                gotOptions.headers = this._options.api.headers;
+            if (this._options.api.headers) {
+                fetchOpts.headers = this._options.api.headers;
             }
-            respData = await got(url, gotOptions).json();
+            respData = await (await Fetch.default(url, fetchOpts)).json();
         } catch (error) {
             this._changeStatus(Updater.EnumStatus.Cancel, `Cannot connect to api url,${error.message}`);
             throw new Error(`Cannot connect to api url,${error.message}`);
@@ -148,9 +151,14 @@ const Updater = class Updater extends EventEmitter {
     }
 
     async _download() {
-        let responseStream = got.stream(this._downloadUrl);
-        let response = await this._getResponse(responseStream);
-        let contentType = response.headers['content-type'];
+        let receivedBytes = 0;
+        const request = net.request({url:this._downloadUrl});
+        const responsePromise =   this._getResponse(request);
+        request.end();
+        const response = await responsePromise;
+        const headers = response.headers;
+        const contentType = headers['content-type'];
+        const totalBytes = headers['content-length'] ? parseInt(headers['content-length']) : 0;
         if (!await exists(this._downloadDir)) {
             await fsPromises.mkdir(this._downloadDir, {recursive: true});
         }
@@ -162,20 +170,27 @@ const Updater = class Updater extends EventEmitter {
         if (await exists(filePath)) {
             await this.deleteFile(filePath);
         }
-        let writeStream = FileSystem.createWriteStream(filePath);
+        const writeStream = fs.createWriteStream(filePath);
 
-        responseStream.on('downloadProgress', progress => {
+        response.on('data', (buffer) => {
+            receivedBytes += buffer.length;
+            const progress = {
+                percent: totalBytes === 0 ? 0 : receivedBytes / totalBytes,
+                transferred: receivedBytes,
+                total: totalBytes,
+            }
             this.emit('downloadProgress', progress)
-        });
+        })
+
 
         if (this._isOldNode) {
             const util = require('util');
             const stream = require('stream');
             const pipeline = util.promisify(stream.pipeline);
-            await pipeline(responseStream, writeStream);
+            await pipeline(response, writeStream);
         } else {
             const {pipeline} = require('node:stream/promises');
-            await pipeline(responseStream, writeStream, {signal: this._dlAbortController.signal});
+            await pipeline(response, writeStream, {signal: this._dlAbortController.signal});
         }
 
         this._changeStatus(Updater.EnumStatus.Downloaded);
@@ -263,12 +278,12 @@ const Updater = class Updater extends EventEmitter {
         }
     }
 
-    async _getResponse(stream) {
+    async _getResponse(request) {
         return new Promise((resolve, reject) => {
-            stream.on('response', response => {
+            request.on('response', response => {
                 resolve(response);
             });
-            stream.on('error', error => {
+            request.on('error', error => {
                 reject(error);
             });
         });
@@ -339,7 +354,7 @@ const Updater = class Updater extends EventEmitter {
                 const fileHandle  = await fsPromises.open(path, "w");
                 await fileHandle?.close();
             } else {
-                await fsPromises.access(path, FileSystem.constants.W_OK);
+                await fsPromises.access(path, fs.constants.W_OK);
             }
             return true;
         } catch (err) {

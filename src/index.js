@@ -160,7 +160,7 @@ const Updater = class Updater extends EventEmitter {
         }
         this._downloadFilePath = filePath;
         if (await exists(filePath)) {
-            await fsPromises.rm(filePath, {force: true, recursive: true});
+            await this.deleteFile(filePath);
         }
         let writeStream = FileSystem.createWriteStream(filePath);
 
@@ -179,6 +179,16 @@ const Updater = class Updater extends EventEmitter {
         }
 
         this._changeStatus(Updater.EnumStatus.Downloaded);
+    }
+
+    async deleteFile($p) {
+        try {
+            await fsPromises.unlink($p);
+            if (await exists($p)) {
+                await fsPromises.rm($p, {force: true, recursive: true});
+            }
+        } catch {
+        }
     }
 
     async _zipExtract() {
@@ -202,7 +212,7 @@ const Updater = class Updater extends EventEmitter {
         if (!this.isDev()) {
             try {
                 const bakAsarPath = path.join(this._downloadDir, 'app.bak.asar');
-                await fsPromises.rm(bakAsarPath, {force: true, recursive: true}); //如果已有bak文件是只读，那么必须要先删除才能copy overwrite
+                await this.deleteFile(bakAsarPath); //如果已有bak文件是只读，那么必须要先删除才能copy overwrite
                 await fsPromises.copyFile(appAsarPath, bakAsarPath);
             } catch (e) {
                 this._log(`Backup app.bak.asar error.${e.message}`);

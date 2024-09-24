@@ -17,8 +17,9 @@ const Updater = class Updater extends EventEmitter {
     _options = {
         api: {
             url: null,
-            body: null,
+            body: '',
             method: 'POST',
+            headers:{}
         },
         autoRestart: true,
         debug: false,
@@ -47,6 +48,16 @@ const Updater = class Updater extends EventEmitter {
         Cancel: 200,
     }
 
+    /**
+     * @param {Object} options
+     * @param {Object} options.api
+     * @param {string} options.api.url
+     * @param {string|Object} [options.api.body]
+     * @param {string} [options.api.method]
+     * @param {Object} [options.api.headers]
+     * @param {boolean} [options.autoRestart]
+     * @param {boolean} [options.debug]
+     */
     constructor(options) {
         super();
         this._isOldNode = !!this._getNodeMajorVersion() < 15;
